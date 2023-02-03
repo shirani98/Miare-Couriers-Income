@@ -1,0 +1,2 @@
+from financial_report.models.daily_report import DailyReport
+from financial_report.models.weekly_report import WeeklyReport
