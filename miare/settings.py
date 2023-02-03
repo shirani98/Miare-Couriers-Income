@@ -37,6 +37,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    
+    #Local apps
+    'financial_report.apps.FinancialReportConfig',
+    'transaction.apps.TransactionConfig',
+    
+    #Third-party apps
 ]
 
 MIDDLEWARE = [
