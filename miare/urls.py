@@ -20,5 +20,5 @@ from financial_report.views import WeeklyReportListView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/", WeeklyReportListView.as_view()),
+    path("api/", WeeklyReportListView.as_view(), name="weekly-reports-list"),
 ]
