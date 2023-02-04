@@ -4,6 +4,8 @@ from datetime import date
 from django.db.models import Sum, Q
 from django.db.models.functions import Coalesce
 from enum import Enum
+from django.db import transaction
+from django.db.models import Sum, Case, When, Value
 
 class TransactionType(Enum):
     """Enum class to represent the type of a Transaction."""
@@ -40,35 +42,36 @@ class Transaction(models.Model):
         The amount is calculated by summing all positive transactions (TRIP and INCREASE) and
         subtracting all negative transactions (DECREASE).
         """
-        positive_amount = Sum(
-            "amount",
-            filter=Q(
-                transaction_type__in=[
-                    TransactionType.TRIP.value,
-                    TransactionType.INCREASE.value,
-                ]
+        total_amount = Sum(
+            Case(
+                When(
+                    transaction_type__in=[
+                        TransactionType.TRIP.value,
+                        TransactionType.INCREASE.value,
+                    ],
+                    then="amount",
+                ),
+                default=Value(0),
+                output_field=models.PositiveIntegerField(),
+            )
+            - Case(
+                When(transaction_type=TransactionType.DECREASE.value, then="amount"),
+                default=Value(0),
+                output_field=models.PositiveIntegerField(),
             ),
         )
-        negative_amount = Sum(
-            "amount", filter=Q(transaction_type=TransactionType.DECREASE.value)
-        )
 
-        return self.courier.transactions.filter(
-            date=self.date
-        ).aggregate(
-            total_daily_amount=Coalesce(positive_amount, 0)
-            - Coalesce(negative_amount, 0)
-        )[
-            "total_daily_amount"
-        ]
-
+        return self.courier.transactions.filter(date=self.date).aggregate(
+            total_amount=total_amount
+        )["total_amount"]
 
     def save(self, *args, **kwargs):
         from financial_report.models import DailyReport
 
         super().save(*args, **kwargs)
-        DailyReport.objects.update_or_create(
-            courier=self.courier,
-            date=self.date,
-            defaults={"amount": self._calculate_amount()},
-        )
+        with transaction.atomic():
+            DailyReport.objects.update_or_create(
+                courier=self.courier,
+                date=self.date,
+                defaults={"amount": self._calculate_amount()},
+            )
