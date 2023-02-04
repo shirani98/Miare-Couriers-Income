@@ -31,18 +31,17 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    
-    #Local apps
-    'financial_report.apps.FinancialReportConfig',
-    'transaction.apps.TransactionConfig',
-    
-    #Third-party apps
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    # Local apps
+    "financial_report.apps.FinancialReportConfig",
+    "transaction.apps.TransactionConfig",
+    # Third-party apps
+    "rest_framework",
 ]
 
 MIDDLEWARE = [
@@ -72,6 +71,16 @@ TEMPLATES = [
         },
     },
 ]
+
+REST_FRAMEWORK = {
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.AllowAny",
+    ],
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+}
+
 
 WSGI_APPLICATION = 'miare.wsgi.application'
 
