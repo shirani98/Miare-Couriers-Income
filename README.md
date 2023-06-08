@@ -40,6 +40,11 @@ python manage.py migrate
 ```
 python manage.py runserver
 ```
+8- Run celery beat and worker
+```
+celery -A miare worker --loglevel=info
+celery -A miare beat --loglevel=info
+```
 ## Usage
 The system provides an API to retrieve Weekly Reports. The API endpoint can be accessed at http://127.0.0.1:8000/api/.
 
