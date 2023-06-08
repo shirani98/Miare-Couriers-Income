@@ -1,11 +1,11 @@
 from datetime import date
 from enum import Enum
 
+from django.apps import apps
 from django.db import models, transaction
 from django.db.models import Q, Sum
 from django.db.models.functions import Coalesce
 
-from financial_report.models import DailyReport
 from transaction.models import Courier
 
 
@@ -38,7 +38,7 @@ class Transaction(models.Model):
     def __str__(self):
         return f"{self.courier.name} - {self.amount} - {TransactionType(self.transaction_type).name}"
 
-    def _calculate_amount(self):
+    def _calculate_daily_amount(self):
         """Helper method to calculate the amount.
 
         The amount is calculated by summing all positive transactions (TRIP and INCREASE) and
@@ -63,10 +63,12 @@ class Transaction(models.Model):
         )["total_amount"]
 
     def save(self, *args, **kwargs):
+        DailyReport = apps.get_model(app_label="financial_report", model_name="DailyReport")
+
         super().save(*args, **kwargs)
         with transaction.atomic():
             DailyReport.objects.update_or_create(
                 courier=self.courier,
                 date=self.date,
-                defaults={"amount": self._calculate_amount()},
+                defaults={"amount": self._calculate_daily_amount()},
             )

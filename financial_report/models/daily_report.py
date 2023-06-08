@@ -1,7 +1,6 @@
-from datetime import date, timedelta
+from datetime import date
 
 from django.db import models
-from django.db.models import Sum
 
 from transaction.models.courier import Courier
 

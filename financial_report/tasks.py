@@ -1,6 +1,7 @@
 from datetime import date, timedelta
-from django.db import transaction
+
 from celery import shared_task
+from django.db import transaction
 from django.db.models import OuterRef, Subquery, Sum
 
 from financial_report.models import DailyReport, WeeklyReport
