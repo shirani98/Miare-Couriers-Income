@@ -1,11 +1,13 @@
-from django.db import models
-from transaction.models import Courier
 from datetime import date
-from django.db.models import Sum, Q
-from django.db.models.functions import Coalesce
 from enum import Enum
-from django.db import transaction
-from django.db.models import Sum, Case, When, Value
+
+from django.apps import apps
+from django.db import models, transaction
+from django.db.models import Q, Sum
+from django.db.models.functions import Coalesce
+
+from transaction.models import Courier
+
 
 class TransactionType(Enum):
     """Enum class to represent the type of a Transaction."""
@@ -32,46 +34,41 @@ class Transaction(models.Model):
     )
     date = models.DateField(default=date.today, verbose_name="Date")
     description = models.JSONField(blank=True, null=True, verbose_name="Description")
-    
+
     def __str__(self):
         return f"{self.courier.name} - {self.amount} - {TransactionType(self.transaction_type).name}"
 
-    def _calculate_amount(self):
+    def _calculate_daily_amount(self):
         """Helper method to calculate the amount.
 
         The amount is calculated by summing all positive transactions (TRIP and INCREASE) and
         subtracting all negative transactions (DECREASE).
         """
-        total_amount = Sum(
-            Case(
-                When(
+        total_amount = Coalesce(
+            Sum(
+                "amount",
+                filter=Q(
                     transaction_type__in=[
                         TransactionType.TRIP.value,
                         TransactionType.INCREASE.value,
-                    ],
-                    then="amount",
+                    ]
                 ),
-                default=Value(0),
-                output_field=models.PositiveIntegerField(),
-            )
-            - Case(
-                When(transaction_type=TransactionType.DECREASE.value, then="amount"),
-                default=Value(0),
-                output_field=models.PositiveIntegerField(),
             ),
-        )
+            0,
+        ) - Coalesce(Sum("amount", filter=Q(transaction_type=TransactionType.DECREASE.value)), 0)
+
 
         return self.courier.transactions.filter(date=self.date).aggregate(
             total_amount=total_amount
         )["total_amount"]
 
     def save(self, *args, **kwargs):
-        from financial_report.models import DailyReport
+        DailyReport = apps.get_model(app_label="financial_report", model_name="DailyReport")
 
         super().save(*args, **kwargs)
         with transaction.atomic():
             DailyReport.objects.update_or_create(
                 courier=self.courier,
                 date=self.date,
-                defaults={"amount": self._calculate_amount()},
+                defaults={"amount": self._calculate_daily_amount()},
             )
